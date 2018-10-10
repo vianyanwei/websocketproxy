@@ -38,7 +38,7 @@ func dialBackendWsNode(r *http.Request) (*websocket.Conn, error) {
 	return c, nil
 }
 
-func ProxyPass(from, to *websocket.Conn, complete, done, otherDone chan bool) {
+func proxyPass(from, to *websocket.Conn, complete, done, otherDone chan bool) {
 	for {
 		select {
 		case <- otherDone:
@@ -71,14 +71,14 @@ func ProxyPass(from, to *websocket.Conn, complete, done, otherDone chan bool) {
 	}
 }
 
-func proxyPass(from, to *websocket.Conn) {
+func startProxy(from, to *websocket.Conn) {
 	ch1 := make(chan bool, 1)
 	ch2 := make(chan bool, 1)
 
 	complete := make(chan bool, 2)
 
-	go ProxyPass(from, to, complete, ch1, ch2)
-	go ProxyPass(to, from, complete, ch2, ch1)
+	go proxyPass(from, to, complete, ch1, ch2)
+	go proxyPass(to, from, complete, ch2, ch1)
 
 	<-complete
 	<-complete
@@ -101,7 +101,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer toConn.Close()
 
-	proxyPass(fromConn, toConn)
+	startProxy(fromConn, toConn)
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
